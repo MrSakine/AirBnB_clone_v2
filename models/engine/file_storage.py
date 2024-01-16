@@ -33,7 +33,7 @@ class FileStorage:
             if cls in classes:
                 return {
                     k: v for k, v in FileStorage.__objects.items()
-                    if k.split(".")[1] == cls
+                    if eval(k.split(".")[1]) == cls
                 }
             else:
                 pass
@@ -90,7 +90,3 @@ class FileStorage:
         object_key = obj.to_dict()["__class__"] + "." + obj.id
         if object_key in self.__objects.keys():
             del self.__objects[object_key]
-
-    def close(self):
-        """Call the reload method."""
-        self.reload()
