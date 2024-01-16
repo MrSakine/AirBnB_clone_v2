@@ -32,13 +32,10 @@ class FileStorage:
             }
             if type(cls) is str:
                 cls = eval(cls)
-            if cls in classes:
                 return {
                     k: v for k, v in FileStorage.__objects.items()
                     if eval(k.split(".")[1]) == type(cls)
                 }
-            else:
-                pass
         return FileStorage.__objects
 
     def new(self, obj):
