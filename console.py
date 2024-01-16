@@ -14,6 +14,7 @@ from models.state import State
 from models.city import City
 from models.amenity import Amenity
 from models.review import Review
+import shlex
 
 
 class HBNBCommand(cmd.Cmd):
@@ -129,88 +130,41 @@ class HBNBCommand(cmd.Cmd):
         """Overrides the emptyline method of CMD"""
         pass
 
-    def do_create(self, args):
-        """Create an object of any class"""
-        ignored_attributes = (
-            "created_at",
-            "id",
-            "updated_at",
-            "__class__",
-        )
+    def _parser(self, args):
+        """creates a dictionary from a list of strings"""
+        new_dict = {}
+        for arg in args:
+            if "=" in arg:
+                kvp = arg.split("=", 1)
+                key = kvp[0]
+                value = kvp[1]
+                if value[0] == value[-1] == '"':
+                    value = shlex.split(value)[0].replace("_", " ")
+                else:
+                    try:
+                        value = int(value)
+                    except Exception:
+                        try:
+                            value = float(value)
+                        except Exception:
+                            continue
+                new_dict[key] = value
+        return new_dict
 
-        class_name = ""
-        class_name_pattern = (
-            r"(?P<class_name>(?:[a-zA-Z]|_)(?:[a-zA-Z]|\d|_)*)"
-        )
-        class_match = re.match(class_name_pattern, args)
-        object_kwargs = {}
-
-        if class_match is not None:
-            class_name = class_match.group("class_name")
-            params_string = args[len(class_name):].strip()
-            params = params_string.split(" ")
-            str_pattern = r'(?P<string>"([^"]|\")*")'
-            int_pattern = r"(?P<int>[-+]?\d+)"
-            float_pattern = r"(?P<float>[-+]?\d+\.\d+)"
-
-            param_pattern = "{}=({}|{}|{})".format(
-                class_name_pattern,
-                str_pattern,
-                float_pattern,
-                int_pattern,
-            )
-
-            for param in params:
-                param_match = re.fullmatch(param_pattern, param)
-                if param_match is not None:
-                    key_name = param_match.group("class_name")
-                    str_value = param_match.group("string")
-                    float_value = param_match.group("float")
-                    int_value = param_match.group("int")
-
-                    if float_value is not None:
-                        object_kwargs[key_name] = float(float_value)
-                    if int_value is not None:
-                        object_kwargs[key_name] = int(int_value)
-                    if str_value is not None:
-                        object_kwargs[key_name] = str_value[
-                            1:-1
-                        ].replace("-", " ")
-        else:
-            class_name = args
-
-        if not class_name:
+    def do_create(self, arg):
+        """Creates a new instance of a class"""
+        args = arg.split()
+        if len(args) == 0:
             print("** class name missing **")
-            return
-        elif class_name not in HBNBCommand.classes:
-            print("** class doesn't exist **")
-            return
-
-        storage_type = os.getenv("HBNB_TYPE_STORAGE")
-        if storage_type == "db":
-            if not hasattr(object_kwargs, "id"):
-                object_kwargs.setdefault("id", str(uuid.uuid4()))
-            if not hasattr(object_kwargs, "created_at"):
-                object_kwargs.setdefault(
-                    "created_at", str(datetime.now())
-                )
-            if not hasattr(object_kwargs, "updated_at"):
-                object_kwargs.setdefault(
-                    "updated_at", str(datetime.now())
-                )
-
-            new_instance = HBNBCommand.classes[class_name](
-                **object_kwargs
-            )
-            new_instance.save()
-            print(new_instance.id)
+            return False
+        if args[0] in HBNBCommand.classes:
+            new_dict = self._parser(args[1:])
+            instance = HBNBCommand.classes[args[0]](**new_dict)
         else:
-            new_instance = HBNBCommand.classes[class_name]()
-            for key, value in object_kwargs.items():
-                if key not in ignored_attributes:
-                    setattr(new_instance, key, value)
-            new_instance.save()
-            print(new_instance.id)
+            print("** class doesn't exist **")
+            return False
+        print(instance.id)
+        instance.save()
 
     def help_create(self):
         """Help information for the create method"""
