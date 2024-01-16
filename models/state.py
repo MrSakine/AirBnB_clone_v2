@@ -11,22 +11,29 @@ import shlex
 class State(BaseModel, Base):
     """State class / table model"""
 
-    __tablename__ = "states"
-    name = Column(String(128), nullable=False)
-    cities = relationship("City", cascade="all, delete", backref="state")
+    if models.storage_type == "db":
+        __tablename__ = "states"
+        name = Column(String(128), nullable=False)
+        cities = relationship(
+            "City", cascade="all, delete", backref="state"
+        )
+    else:
+        name = ""
 
-    @property
-    def cities(self):
-        """The cities property"""
-        all_storage = models.storage.all()
-        elements = []
-        result = []
-        for key in all_storage:
-            city = key.replace(".", " ")
-            city = shlex.split(city)
-            if city[0] == "City":
-                elements.append(all_storage[key])
-        for e in elements:
-            if e.state_id == self.id:
-                result.append(e)
-        return result
+    if models.storage_type == "db":
+
+        @property
+        def cities(self):
+            """The cities property"""
+            all_storage = models.storage.all()
+            elements = []
+            result = []
+            for key in all_storage:
+                city = key.replace(".", " ")
+                city = shlex.split(city)
+                if city[0] == "City":
+                    elements.append(all_storage[key])
+            for e in elements:
+                if e.state_id == self.id:
+                    result.append(e)
+            return result
