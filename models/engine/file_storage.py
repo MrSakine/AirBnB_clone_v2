@@ -33,7 +33,7 @@ class FileStorage:
             if cls in classes:
                 return {
                     k: v for k, v in FileStorage.__objects.items()
-                    if eval(k.split(".")[1]) == cls
+                    if eval(k.split(".")[1]) == type(cls)
                 }
             else:
                 pass
