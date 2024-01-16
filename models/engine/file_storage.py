@@ -30,6 +30,8 @@ class FileStorage:
                 'State': State, 'City': City, 'Amenity': Amenity,
                 'Review': Review
             }
+            if type(cls) is str:
+                cls = eval(cls)
             if cls in classes:
                 return {
                     k: v for k, v in FileStorage.__objects.items()
