@@ -3,97 +3,30 @@
 Deletes out-of-date archives, using the function do_clean
 """
 import os
-from datetime import datetime
 from fabric.api import *
 
-env.user = "ubuntu"
 env.hosts = ["54.144.46.157", "54.167.85.19"]
 
 
-def do_pack():
-    """Compress files from web_static directory"""
-    try:
-        if not os.path.isdir("versions"):
-            os.makedirs("versions")
-        date = datetime.now()
-        file = "versions/web_static_{0}{1}{2}{3}{4}{5}".format(
-            date.year,
-            date.month,
-            date.day,
-            date.hour,
-            date.minute,
-            date.second
-        )
-        file += ".tgz"
-        local("tar -cvzf {} web_static".format(file))
-        return file
-    except Exception:
-        return None
-
-
-def do_deploy(archive_path):
-    """
-    Deploy archive
+def do_clean(number=0):
+    """Delete out-of-date archives.
 
     Args:
-        - archive_path(str, optional): Path of the archive
-    """
-    try:
-        if not os.path.isfile(archive_path):
-            return False
-        path = archive_path.split("/")[1]
-        name = path.split(".")[0]
-        put(archive_path, "/tmp/{0}".format(path))
-        run("sudo mkdir -p /data/web_static/releases/{}/".format(name))
-        source = "sudo tar -xzf /tmp/{0} -C".format(path)
-        dest = "/data/web_static/releases/{0}/".format(name)
-        run(source + " " + dest)
-        run("sudo rm /tmp/{0}".format(path))
-        source = (
-            "sudo mv /data/web_static/releases/{0}/web_static/*".format(name)
-        )
-        dest = "/data/web_static/releases/{0}/".format(name)
-        run(source + " " + dest)
-        run(
-            "sudo rm -rf /data/web_static/releases/{0}/web_static".format(name)
-        )
-        run("sudo rm -rf /data/web_static/current")
-        source = "sudo ln -s /data/web_static/releases/{0}/".format(name)
-        dest = "/data/web_static/current"
-        run(source + " " + dest)
-        return True
-    except Exception:
-        return False
+        number (int): The number of archives to keep.
 
+    If number is 0 or 1, keeps only the most recent archive. If
+    number is 2, keeps the most and second-most recent archives,
+    etc.
+    """
+    number = 1 if int(number) == 0 else int(number)
 
-def deploy():
-    """
-    Full deployment based on do_pack & do_deploy (task 2)
-    """
-    path = do_pack()
-    if path is None:
-        return False
-    return do_deploy(path)
+    archives = sorted(os.listdir("versions"))
+    (archives.pop() for _ in range(number))
+    with lcd("versions"):
+        (local("rm ./{}".format(a)) for a in archives)
 
-
-def do_clean(number=0):
-    """
-    Delete out-of-date archives
-    """
-    try:
-        number = 1 if number == 0 else int(number)
-        files = sorted(os.listdir("versions"))
-        for _ in range(number):
-            files.pop()
-        with lcd("versions"):
-            for file in files:
-                local("rm -rf {}".format(file))
-        with cd("/data/web_static/releases"):
-            files = run("ls -tr").split()
-            archives = list(map(lambda x: "web_static" in x, files))
-            for _ in range(number):
-                archives.pop()
-            for archive in archives:
-                run("rm -rf {}".format(archive))
-    except Exception as e:
-        print(e)
+    with cd("/data/web_static/releases"):
+        archives = run("ls -tr").split()
+        archives = [a for a in archives if "web_static_" in a]
+        (archives.pop() for _ in range(number))
+        (run("rm -rf ./{}".format(a)) for a in archives)
