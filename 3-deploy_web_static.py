@@ -10,6 +10,24 @@ env.user = "ubuntu"
 env.hosts = ["54.144.46.157", "54.167.85.19"]
 
 
+def custom_run(command: str):
+    """Run command in server"""
+    res = run(command)
+    if res.fialed is True:
+        raise Exception()
+    else:
+        pass
+
+
+def custom_local(command: str):
+    """Run command in local"""
+    res = local(command)
+    if res.fialed is True:
+        raise Exception()
+    else:
+        pass
+
+
 def do_pack():
     """Compress files from web_static directory"""
     try:
@@ -25,7 +43,7 @@ def do_pack():
             date.second
         )
         file += ".tgz"
-        local("tar -cvzf {} web_static".format(file))
+        custom_local("tar -cvzf {} web_static".format(file))
         return file
     except Exception:
         return None
@@ -44,23 +62,23 @@ def do_deploy(archive_path):
         path = archive_path.split("/")[1]
         name = path.split(".")[0]
         put(archive_path, "/tmp/{0}".format(path))
-        run("sudo mkdir -p /data/web_static/releases/{}/".format(name))
+        custom_run("sudo mkdir -p /data/web_static/releases/{}/".format(name))
         source = "sudo tar -xzf /tmp/{0} -C".format(path)
         dest = "/data/web_static/releases/{0}/".format(name)
-        run(source + " " + dest)
-        run("sudo rm /tmp/{0}".format(path))
+        custom_run(source + " " + dest)
+        custom_run("sudo rm /tmp/{0}".format(path))
         source = (
             "sudo mv /data/web_static/releases/{0}/web_static/*".format(name)
         )
         dest = "/data/web_static/releases/{0}/".format(name)
-        run(source + " " + dest)
-        run(
+        custom_run(source + " " + dest)
+        custom_run(
             "sudo rm -rf /data/web_static/releases/{0}/web_static".format(name)
         )
-        run("sudo rm -rf /data/web_static/current")
+        custom_run("sudo rm -rf /data/web_static/current")
         source = "sudo ln -s /data/web_static/releases/{0}/".format(name)
         dest = "/data/web_static/current"
-        run(source + " " + dest)
+        custom_run(source + " " + dest)
         return True
     except Exception:
         return False
